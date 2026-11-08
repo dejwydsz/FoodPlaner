@@ -102,7 +102,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
 .days i{height:8px;border-radius:4px;background:var(--line)}
 .days i.on{background:var(--accent)}
-.days i.ex{background:#d98e2b}.days i.half{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.syn{border:0;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:2px 9px;font:inherit;font-size:12px;display:inline-flex;gap:4px;align-items:center;cursor:pointer;vertical-align:middle}.syn.warn{background:var(--amber-soft);color:var(--amber)}.syn svg{width:13px;height:13px}.lsrc{margin:4px 0 0;font-size:13px}.gen{display:flex;gap:10px;align-items:center;justify-content:space-between;border-radius:14px;padding:10px 14px;margin:0 0 14px;background:var(--accent-soft);color:var(--ink)}.gen.warn{background:var(--amber-soft)}.gen b{display:flex;gap:6px;align-items:center;font-size:14px}.gen small{display:block;color:var(--muted);font-size:12px;margin-top:2px}.gen svg{width:16px;height:16px;flex:none}.gen.ok svg{color:var(--accent)}.gen.warn svg{color:var(--amber)}.days i.ex{background:#d98e2b}.days i.half{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
 .cov small{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
 .wk{display:grid;gap:6px;margin:0 0 6px}.wkh,.wkr{display:grid;grid-template-columns:44px 1fr 1fr 1fr;gap:6px;align-items:stretch}.wk.w5 .wkh,.wk.w5 .wkr{grid-template-columns:44px repeat(4,minmax(0,1fr))}.wk.w5 .cell{font-size:12px;padding:7px 6px}.wkh span{font-size:12px;color:var(--muted);padding-left:4px}
 .wkr .dn{border:0;background:none;font-weight:700;font-size:14px;color:var(--ink);border-radius:10px}.wkr.today .dn{color:var(--accent)}
@@ -245,7 +245,21 @@ function write(path,fn){
 }
 function upd(path,data){return write(path,function(r){return r.update(data)})}
 function setDoc(path,data){return write(path,function(r){return r.set(data)})}
-function plan(data){return upd('plan/current',data)}
+var IC_OK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',IC_WARN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>';
+function normPk(a){return (a||[]).map(function(p){return {r:p.r,m:p.m||1,sug:!!p.sug}}).sort(function(x,y){return x.r<y.r?-1:x.r>y.r?1:0})}
+function listPk(){var pl=S.plan||{};return Array.isArray(pl.lk)?pl.lk:(pl.picks||[])}
+function listSync(){var pl=S.plan||{};if(pl.example)return 'none';var pk=pl.picks||[],lk=listPk();if(!pk.length&&!lk.length)return 'none';return JSON.stringify(normPk(pk))===JSON.stringify(normPk(lk))?'ok':'stale'}
+function fmtDT(iso){var d=new Date(iso);if(isNaN(d))return '';var M=['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];return d.getDate()+' '+M[d.getMonth()]+', '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
+/* Lista zakupów to osobna migawka dań (lk). Plan tygodnia (picks) zmienia ją dopiero po „Wygeneruj listę”. */
+function plan(data){var pl=S.plan||{};if(!Array.isArray(pl.lk)&&!('lk' in data)&&('picks' in data||'slots' in data)){data=Object.assign({},data,{lk:pl.example?[]:normPk(pl.picks)})}return upd('plan/current',data)}
+function listSrc(){var sy=listSync(),lat=S.plan.lat;if(sy==='none'&&!lat)return '';
+  var b=sy==='none'?'':'<button class="syn '+(sy==='ok'?'ok':'warn')+'" data-act="planshop" title="'+(sy==='ok'?'Lista zgodna z planem tygodnia':'Plan tygodnia zmienił się od tej listy')+'">'+(sy==='ok'?IC_OK+' zgodna z planem':IC_WARN+' plan się zmienił')+'</button>';
+  return '<p class="sub lsrc">'+(lat?'Lista z '+fmtDT(lat)+' ':'')+b+'</p>'}
+function genList(){S.confirmGen=false;plan({lk:normPk(S.plan.picks),lat:new Date().toISOString()});toast('Lista zakupów zaktualizowana z planu.')}
+function genBar(){var pl=S.plan,pk=pl.picks||[];if(pl.example||!pk.length)return '';var sy=listSync(),lat=pl.lat,has=Array.isArray(pl.lk)&&pl.lk.length;
+  var when=lat?'Lista z '+fmtDT(lat):(has||sy==='ok'?'Lista bez daty':'Lista jeszcze niewygenerowana');
+  if(sy==='ok')return '<div class="gen ok"><div><b>'+IC_OK+' Lista zakupów zgodna z planem</b><small>'+when+'</small></div><button class="btn" data-act="tab" data-v="lista">Pokaż listę</button></div>';
+  return '<div class="gen warn"><div><b>'+IC_WARN+' Plan różni się od listy zakupów</b><small>'+when+'. Lista zmieni się dopiero po wygenerowaniu.</small></div><button class="btn'+(S.confirmGen?' dng':' pri')+'" data-act="genlist">'+(S.confirmGen?'Na pewno? Zastąp listę':'Wygeneruj listę')+'</button></div>'}
 function prod(id,fields){var o={};o[id]=fields;return upd('catalog/products',{items:o})}
 function recp(id,fields){var o={};o[id]=fields;return upd('catalog/recipes',{items:o})}
 
@@ -258,7 +272,7 @@ function bulkTxt(n,u){
 function compute(){
   var P=S.products,R=S.recipes,pl=S.plan,st=pl.state||{},td=today(),items={};
   function get(k,init){return items[k]||(items[k]=Object.assign({key:k,need:0,srcs:[],sugFor:[],hasReg:false,cyc:false},init))}
-  (pl.picks||[]).forEach(function(pk){
+  listPk().forEach(function(pk){
     var r=R[pk.r];if(!r)return;
     (r.ing||[]).forEach(function(g){
       var p=P[g.p];if(!p||p.del)return;
@@ -364,12 +378,12 @@ function viewLista(){
   var done=buy.filter(function(i){return i.status==='got'}).length;
   var nS=buy.filter(function(i){return i.pl==='s'}).length,nO=buy.filter(function(i){return i.pl==='o'}).length;
   var shown=buy.filter(function(i){return S.place==='all'||i.pl===S.place});
-  var h='<header class="top"><div><h1>Zakupy</h1><p class="sub num">'+(buy.length?done+' z '+buy.length+' w koszyku':'Lista jest pusta')+'</p></div><button class="btn pri" data-act="planshop">Planuj zakupy</button></header>';
+  var h='<header class="top"><div><h1>Zakupy</h1><p class="sub num">'+(buy.length?done+' z '+buy.length+' w koszyku':'Lista jest pusta')+'</p>'+listSrc()+'</div><button class="btn pri" data-act="planshop">Pobierz z planu</button></header>';
   h+='<div class="prog"><i style="width:'+(buy.length?Math.round(done/buy.length*100):0)+'%"></i></div>';
   h+='<div class="chips">'+[['all','Wszystko',buy.length],['s','Sklep',nS],['o','Online',nO]].map(function(c){return '<button class="chip" data-act="place" data-v="'+c[0]+'" aria-pressed="'+(S.place===c[0])+'">'+c[1]+' · '+c[2]+'</button>'}).join('')+'</div>';
   h+='<div class="add"><input id="addx-n" placeholder="Dopisz coś do listy" value="'+esc(S.xq)+'" autocomplete="off" aria-label="Nowa pozycja"><select id="addx-c" aria-label="Dział (dla własnej pozycji)">'+CATS.map(function(c){return '<option value="'+c[0]+'"'+(c[0]==='inne'?' selected':'')+'>'+c[1]+'</option>'}).join('')+'</select><button class="btn pri" type="button" data-act="xadd">Dodaj</button></div><div id="xsug" class="qsug">'+xsug()+'</div>';
   if(!buy.length&&!have.length){
-    h+='<div class="empty"><b>Nic tu jeszcze nie ma.</b> Wybierz dania w zakładce Tydzień, a lista złoży się sama. Produkty cykliczne dołożą się, gdy przyjdzie ich czas.</div>';
+    h+='<div class="empty"><b>Nic tu jeszcze nie ma.</b> Zaplanuj dania w zakładce Tydzień i kliknij „Wygeneruj listę”. Produkty cykliczne dołożą się, gdy przyjdzie ich czas.</div>';
   }
   function section(title,arr,showCat){
     if(!arr.length)return '';
@@ -410,6 +424,7 @@ function viewWeek(){
   h+='<div class="startrow"><span>Planujemy od</span><button class="chip" data-act="start" data-v="'+td0+'" aria-pressed="'+(ss===td0)+'">Dziś</button><button class="chip" data-act="start" data-v="'+addDays(td0,1)+'" aria-pressed="'+(ss===addDays(td0,1))+'">Jutro</button><input id="startd" type="date" value="'+ss+'" aria-label="Pierwszy dzień planu"></div>';
   h+='<div class="cov">'+covBar('Śniadania',coverage('sniadanie'),tgt('sniadanie'),'sniadanie')+covBar('Obiady',coverage('obiad'),tgt('obiad'),'obiad')+covBar('Kolacje',coverage('kolacja'),tgt('kolacja'),'kolacja')+covBar('Przekąski',coverage('przekaska'),tgt('przekaska'),'przekaska')+'</div>';
   h+='<div class="acts"><button class="btn pri" data-act="propose">Zaproponuj tydzień</button><button class="btn'+(S.confirmNew?' dng':'')+'" data-act="newweek">'+(S.confirmNew?'Na pewno? Wyczyść listę':'Nowy tydzień')+'</button></div><label class="chk" style="margin:-4px 0 14px"><input type="checkbox" id="norep"'+(S.norep?' checked':'')+'><span>Nie powtarzaj dań z zeszłego tygodnia</span></label>';
+  h+=genBar();
     var Lo=layout('obiad'),Ls=layout('sniadanie'),Lk=layout('kolacja'),Lp=layout('przekaska'),sn=cd('przekaska').length>0,tdw=dayDiff(startStr(),today());
   h+='<div class="wk'+(sn?' w5':'')+'"><div class="wkh"><span></span><span>Śniadanie</span><span>Obiad</span><span>Kolacja</span>'+(sn?'<span>Przekąska</span>':'')+'</div>'+WD.map(function(n0,k){var di=dayInfo(k);
     function cell(m,L){var on=cd(m).indexOf(k)>=0;return '<button class="cell '+(on?'on':'off')+'" data-act="cell" data-m="'+m+'" data-d="'+k+'" aria-pressed="'+on+'">'+(on?(L[k]?esc(L[k]):'<i>do zaplanowania</i>'):'<i>'+(m==='przekaska'?'brak':'gotowiec')+'</i>')+'</button>'}
@@ -584,8 +599,8 @@ function sheetCell(){var c=S.sheet.cell,sl=slotsEff(),cur=sl[c.m+'_'+c.d],on=cd(
 function sheetPlanShop(){
   var planned=!S.plan.example&&(S.plan.picks||[]).length>0;S.sheet={type:'ps'};
   if(planned){
-    var n=coverage('sniadanie')+coverage('obiad')+coverage('kolacja')+coverage('przekaska');
-    openSheet('<h2 style="margin:0 0 6px">Planuj zakupy</h2><p class="hint" style="font-size:14px">Masz zaplanowane posiłki ('+n+' kratek w planie od '+dayInfo(0).wd+' '+dayInfo(0).dm+'). Na liście są składniki z planu, produkty cykliczne i pozycje dopisane ręcznie.</p><div class="sheetbar"><button class="btn" data-act="closebtn">Pokaż listę</button><button class="btn pri" data-act="psplan">Zmień plan tygodnia</button></div>');
+    var n=coverage('sniadanie')+coverage('obiad')+coverage('kolacja')+coverage('przekaska'),sy=listSync(),lat=S.plan.lat;
+    openSheet('<h2 style="margin:0 0 6px">Pobierz z planu</h2><p class="hint" style="font-size:14px">Plan: '+(S.plan.picks||[]).length+' dań ('+n+' kratek, od '+dayInfo(0).wd+' '+dayInfo(0).dm+'). '+(lat?'Lista jest z '+fmtDT(lat)+'. ':'')+(sy==='ok'?'<b>Lista jest zgodna z planem.</b>':'<b>Plan różni się od listy.</b> Pobranie zastąpi dania na liście składnikami z planu.')+' Odhaczenia, produkty cykliczne i pozycje dopisane ręcznie zostają.</p><div class="sheetbar"><button class="btn" data-act="closebtn">Anuluj</button><button class="btn" data-act="psplan">Zmień plan</button>'+(sy==='ok'?'':'<button class="btn pri" data-act="psgen">Pobierz z planu</button>')+'</div>');
   }else{
     var st=S.psStart==null?1:S.psStart;
     openSheet('<h2 style="margin:0 0 6px">Planuj zakupy</h2><p class="hint" style="font-size:14px">Tydzień nie jest zaplanowany. Zaproponować posiłki? Jeśli nie, na liście zostaną tylko produkty cykliczne i dopisane ręcznie.</p><div class="startrow"><span>Planujemy od</span><button class="chip" data-act="psstart" data-v="0" aria-pressed="'+(st===0)+'">Dziś</button><button class="chip" data-act="psstart" data-v="1" aria-pressed="'+(st===1)+'">Jutro</button><button class="chip" data-act="psstart" data-v="2" aria-pressed="'+(st===2)+'">Pojutrze</button></div><div class="sheetbar"><button class="btn" data-act="psno">Nie, tylko cykliczne</button><button class="btn pri" data-act="psyes">Tak, zaplanujmy</button></div>');
@@ -703,7 +718,7 @@ function propose(){
   Object.keys(used).forEach(function(id){recp(id,{last:st0})});
 }
 function newWeek(){
-  setDoc('plan/current',{picks:[],slots:'{}',cs:bd('sniadanie'),co:bd('obiad'),ck:bd('kolacja'),cx:[],bs:bd('sniadanie'),bo:bd('obiad'),bk:bd('kolacja'),bx:[],state:{},extras:{},example:false});
+  setDoc('plan/current',{picks:[],slots:'{}',cs:bd('sniadanie'),co:bd('obiad'),ck:bd('kolacja'),cx:[],bs:bd('sniadanie'),bo:bd('obiad'),bk:bd('kolacja'),bx:[],lk:[],lat:'',state:{},extras:{},example:false});
   S.confirmNew=false;
 }
 
@@ -712,7 +727,7 @@ document.addEventListener('click',function(e){
   var a=el.dataset.act,d=el.dataset;
   if(a==='closesheet'){if(e.target===el)closeSheet();return}
   if(a==='closebtn'){closeSheet();return}
-  if(a==='tab'){S.ret=null;S.tab=d.v;S.open=null;S.confirmNew=false;render(true);window.scrollTo(0,0);return}
+  if(a==='tab'){S.ret=null;S.tab=d.v;S.open=null;S.confirmNew=false;S.confirmGen=false;render(true);window.scrollTo(0,0);return}
   if(a==='place'){S.place=d.v;render(true);return}
   if(a==='lmode'){S.lmode=d.v;try{localStorage.setItem('lmode',d.v)}catch(e){}S.open=null;render(true);window.scrollTo(0,0);return}
   if(a==='xunlink'){var uo={};uo[d.id]={del:true};plan({extras:uo});return}
@@ -774,7 +789,9 @@ document.addEventListener('click',function(e){
   if(a==='planshop'){sheetPlanShop();return}
   if(a==='psstart'){S.psStart=+d.v;sheetPlanShop();return}
   if(a==='psplan'){closeSheet();S.tab='tydzien';render(true);window.scrollTo(0,0);return}
-  if(a==='psno'){closeSheet();plan({picks:[],slots:'{}',example:false});toast('Lista: produkty cykliczne i dopisane ręcznie.');return}
+  if(a==='psno'){closeSheet();plan({picks:[],slots:'{}',example:false,lk:[],lat:new Date().toISOString()});toast('Lista: produkty cykliczne i dopisane ręcznie.');return}
+  if(a==='psgen'){closeSheet();genList();return}
+  if(a==='genlist'){if(listPk().length&&!S.confirmGen){S.confirmGen=true;render(true);setTimeout(function(){if(S.confirmGen){S.confirmGen=false;render()}},4000);return}genList();return}
   if(a==='psyes'){var st0=S.psStart==null?1:S.psStart;closeSheet();plan({start:addDays(today(),st0),picks:[],slots:'{}',example:false});S.tab='tydzien';render(true);window.scrollTo(0,0);toast('Ustaw dni gotowania i kliknij „Zaproponuj tydzień”.');return}
   if(a==='start'){plan({start:d.v});return}
   if(a==='gor'){var y0=window.scrollY,t0=S.tab;closeSheet();S.ret=t0==='tydzien'?{tab:t0,y:y0}:null;S.tab='przepisy';S.open=null;render(true);window.scrollTo(0,0);sheetRecipe(d.r);return}
