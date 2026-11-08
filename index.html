@@ -253,9 +253,9 @@ function fmtDT(iso){var d=new Date(iso);if(isNaN(d))return '';var M=['sty','lut'
 /* Lista zakupów to osobna migawka dań (lk). Plan tygodnia (picks) zmienia ją dopiero po „Wygeneruj listę”. */
 function plan(data){var pl=S.plan||{};if(!Array.isArray(pl.lk)&&!('lk' in data)&&('picks' in data||'slots' in data)){data=Object.assign({},data,{lk:pl.example?[]:normPk(pl.picks)})}return upd('plan/current',data)}
 function listSrc(){var sy=listSync(),lat=S.plan.lat;if(sy==='none'&&!lat)return '';
-  var b=sy==='none'?'':'<button class="syn '+(sy==='ok'?'ok':'warn')+'" data-act="planshop" title="'+(sy==='ok'?'Lista zgodna z planem tygodnia':'Plan tygodnia zmienił się od tej listy')+'">'+(sy==='ok'?IC_OK+' zgodna z planem':IC_WARN+' plan się zmienił')+'</button>';
+  var b=sy==='none'?'':sy==='ok'?'<span class="syn ok" title="Lista zgodna z planem tygodnia">'+IC_OK+' zgodna z planem</span>':'<button class="syn warn" data-act="planshop" title="Plan tygodnia zmienił się od tej listy">'+IC_WARN+' plan się zmienił</button>';
   return '<p class="sub lsrc">'+(lat?'Lista z '+fmtDT(lat)+' ':'')+b+'</p>'}
-function genList(){S.confirmGen=false;plan({lk:normPk(S.plan.picks),lat:new Date().toISOString()});toast('Lista zakupów zaktualizowana z planu.')}
+function genList(){S.confirmGen=false;var lk=normPk(S.plan.picks),ro={},st0=startStr();lk.forEach(function(p){if(S.recipes[p.r])ro[p.r]={last:st0}});plan({lk:lk,lat:new Date().toISOString()});if(Object.keys(ro).length)upd('catalog/recipes',{items:ro});toast('Lista zakupów zaktualizowana z planu.')}
 function genBar(){var pl=S.plan,pk=pl.picks||[];if(pl.example||!pk.length)return '';var sy=listSync(),lat=pl.lat,has=Array.isArray(pl.lk)&&pl.lk.length;
   var when=lat?'Lista z '+fmtDT(lat):(has||sy==='ok'?'Lista bez daty':'Lista jeszcze niewygenerowana');
   if(sy==='ok')return '<div class="gen ok"><div><b>'+IC_OK+' Lista zakupów zgodna z planem</b><small>'+when+'</small></div><button class="btn" data-act="tab" data-v="lista">Pokaż listę</button></div>';
@@ -378,7 +378,7 @@ function viewLista(){
   var done=buy.filter(function(i){return i.status==='got'}).length;
   var nS=buy.filter(function(i){return i.pl==='s'}).length,nO=buy.filter(function(i){return i.pl==='o'}).length;
   var shown=buy.filter(function(i){return S.place==='all'||i.pl===S.place});
-  var h='<header class="top"><div><h1>Zakupy</h1><p class="sub num">'+(buy.length?done+' z '+buy.length+' w koszyku':'Lista jest pusta')+'</p>'+listSrc()+'</div><button class="btn pri" data-act="planshop">Pobierz z planu</button></header>';
+  var h='<header class="top"><div><h1>Zakupy</h1><p class="sub num">'+(buy.length?done+' z '+buy.length+' w koszyku':'Lista jest pusta')+'</p>'+listSrc()+'</div>'+(listSync()==='ok'?'':'<button class="btn pri" data-act="planshop">Pobierz z planu</button>')+'</header>';
   h+='<div class="prog"><i style="width:'+(buy.length?Math.round(done/buy.length*100):0)+'%"></i></div>';
   h+='<div class="chips">'+[['all','Wszystko',buy.length],['s','Sklep',nS],['o','Online',nO]].map(function(c){return '<button class="chip" data-act="place" data-v="'+c[0]+'" aria-pressed="'+(S.place===c[0])+'">'+c[1]+' · '+c[2]+'</button>'}).join('')+'</div>';
   h+='<div class="add"><input id="addx-n" placeholder="Dopisz coś do listy" value="'+esc(S.xq)+'" autocomplete="off" aria-label="Nowa pozycja"><select id="addx-c" aria-label="Dział (dla własnej pozycji)">'+CATS.map(function(c){return '<option value="'+c[0]+'"'+(c[0]==='inne'?' selected':'')+'>'+c[1]+'</option>'}).join('')+'</select><button class="btn pri" type="button" data-act="xadd">Dodaj</button></div><div id="xsug" class="qsug">'+xsug()+'</div>';
@@ -715,7 +715,6 @@ function propose(){
   run('obiad',Infinity);run('kolacja',Infinity);run('sniadanie',Infinity);run('przekaska',Infinity);
   var td=today();
   plan(Object.assign({slots:JSON.stringify(sl),picks:derive(sl,[]),example:false,start:startStr()},xFields(X),bFields(B0)));
-  Object.keys(used).forEach(function(id){recp(id,{last:st0})});
 }
 function newWeek(){
   setDoc('plan/current',{picks:[],slots:'{}',cs:bd('sniadanie'),co:bd('obiad'),ck:bd('kolacja'),cx:[],bs:bd('sniadanie'),bo:bd('obiad'),bk:bd('kolacja'),bx:[],lk:[],lat:'',state:{},extras:{},example:false});
