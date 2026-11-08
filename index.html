@@ -102,7 +102,7 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid 
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
 .days i{height:8px;border-radius:4px;background:var(--line)}
 .days i.on{background:var(--accent)}
-.days i.half{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.days i.ex{background:#d98e2b}.days i.half{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
 .cov small{font-weight:400;color:var(--muted);font-size:12px;margin-left:6px}
 .wk{display:grid;gap:6px;margin:0 0 6px}.wkh,.wkr{display:grid;grid-template-columns:44px 1fr 1fr 1fr;gap:6px;align-items:stretch}.wk.w5 .wkh,.wk.w5 .wkr{grid-template-columns:44px repeat(4,minmax(0,1fr))}.wk.w5 .cell{font-size:12px;padding:7px 6px}.wkh span{font-size:12px;color:var(--muted);padding-left:4px}
 .wkr .dn{border:0;background:none;font-weight:700;font-size:14px;color:var(--ink);border-radius:10px}.wkr.today .dn{color:var(--accent)}
@@ -198,7 +198,7 @@ nav button[aria-current="page"]{background:var(--accent-soft);color:var(--accent
 var CATS=[['warz','Warzywa i owoce'],['nab','Nabiał i jajka'],['mieso','Mięso, ryby i wędliny'],['got','Gotowce (lodówka)'],['mroz','Mrożonki'],['sucho','Makarony, mąki, płatki'],['konw','Konserwy i słoiki'],['sosy','Sosy, oleje, przyprawy'],['sniad','Śniadanie, słodkie, bakalie'],['napoje','Napoje i mleka roślinne'],['dom','Chemia i dom'],['inne','Inne']];
 var CATN={};CATS.forEach(function(c){CATN[c[0]]=c[1]});
 var TABS=[['lista','Lista'],['tydzien','Tydzień'],['przepisy','Przepisy'],['produkty','Produkty']];
-var DAYS_MAX=7;var WD=['Pn','Wt','Śr','Cz','Pt','So','Nd'];var MK2={sniadanie:'nb',obiad:'no',kolacja:'nk'},MK={sniadanie:'cs',obiad:'co',kolacja:'ck',przekaska:'cx'},MN={sniadanie:'Śniadanie',obiad:'Obiad',kolacja:'Kolacja',przekaska:'Przekąska'},POOL=function(m){return m==='sniadanie'?'sniadanie':'obiad'};function cd(m){var w=S.plan&&S.plan[MK[m]];return Array.isArray(w)?w:(m==='kolacja'||m==='przekaska'?[]:[0,1,2,3])}function tgt(m){return cd(m).length}
+var DAYS_MAX=7;var WD=['Pn','Wt','Śr','Cz','Pt','So','Nd'];var MK2={sniadanie:'nb',obiad:'no',kolacja:'nk'},MK={sniadanie:'cs',obiad:'co',kolacja:'ck',przekaska:'cx'},MN={sniadanie:'Śniadanie',obiad:'Obiad',kolacja:'Kolacja',przekaska:'Przekąska'},POOL=function(m){return m==='sniadanie'?'sniadanie':'obiad'};function cd(m){var w=S.plan&&S.plan[MK[m]];return Array.isArray(w)?w:(m==='kolacja'||m==='przekaska'?[]:[0,1,2,3])}var BK={sniadanie:'bs',obiad:'bo',kolacja:'bk',przekaska:'bx'};function bd(m){var w=S.plan&&S.plan[BK[m]];return Array.isArray(w)?w:cd(m)}function tgt(m){return bd(m).length}function bFields(B){var o={};['sniadanie','obiad','kolacja','przekaska'].forEach(function(m){o[BK[m]]=(B[m]||[]).slice().sort(function(a,b){return a-b})});return o}function curB(){return {sniadanie:bd('sniadanie').slice(),obiad:bd('obiad').slice(),kolacja:bd('kolacja').slice(),przekaska:bd('przekaska').slice()}}
 function buildSlots(picks){var s={};['sniadanie','obiad'].forEach(function(m){var cells=cd(m).slice().sort(function(a,b){return a-b}),ix=0;picks.forEach(function(pk){var r=S.recipes[pk.r];if(!r||r.meal!==m)return;for(var k=0;k<(r.days||2)&&ix<cells.length;k++)s[m+'_'+cells[ix++]]=pk.r})});return s}
 function slotsEff(){var s=S.plan&&S.plan.slots;if(typeof s==='string'){try{return JSON.parse(s)||{}}catch(e){return {}}}return s&&typeof s==='object'?s:buildSlots((S.plan&&S.plan.picks)||[])}
 function derive(sl,oldP){var cnt={},old=(oldP||S.plan.picks||[]),out=[],seen={};Object.keys(sl).forEach(function(k){cnt[sl[k]]=1});old.forEach(function(pk){if((cnt[pk.r]||pk.x)&&!seen[pk.r]){out.push(pk);seen[pk.r]=1}});Object.keys(cnt).forEach(function(id){if(!seen[id]&&S.recipes[id])out.push({r:id,m:S.recipes[id].m||1,sug:true})});return out}
@@ -397,8 +397,8 @@ function viewLista(){
 function coverage(meal){return Object.keys(layout(meal)).length}
 function dc(m){var sl=slotsEff(),s={};cd(m).forEach(function(d){var id=sl[m+'_'+d];if(id)s[id]=1});return Object.keys(s).length}
 function covBar(label,n,N,m){
-  var L=layout(m),on=cd(m),d='';for(var i=0;i<7;i++)d+='<i title="'+dayInfo(i).wd+'" class="'+(L[i]?'on':on.indexOf(i)>=0?'half':'')+'"></i>';
-  return '<div><b><span>'+label+' <small>zaplanowane '+n+'</small></span><span class="cs"><button class="sb" data-act="cnt" data-m="'+m+'" data-dir="-1" aria-label="Mniej dni">−</button><span class="num">'+N+' z 7 dni</span><button class="sb" data-act="cnt" data-m="'+m+'" data-dir="1" aria-label="Więcej dni">+</button></span></b><div class="days">'+d+'</div></div>';
+  var L=layout(m),on=cd(m),B=bd(m),d='',ex=0;for(var i=0;i<7;i++){var isx=L[i]&&B.indexOf(i)<0;if(isx)ex++;d+='<i title="'+dayInfo(i).wd+(isx?' (poza wybraną liczbą dni, z końcówki dania)':'')+'" class="'+(L[i]?(isx?'ex':'on'):on.indexOf(i)>=0?'half':'')+'"></i>'}
+  return '<div><b><span>'+label+' <small>zaplanowane '+n+(ex?' (w tym '+ex+' ponad wybór)':'')+'</small></span><span class="cs"><button class="sb" data-act="cnt" data-m="'+m+'" data-dir="-1" aria-label="Mniej dni">−</button><span class="num">'+N+' z 7 dni</span><button class="sb" data-act="cnt" data-m="'+m+'" data-dir="1" aria-label="Więcej dni">+</button></span></b><div class="days">'+d+'</div></div>';
 }
 function photo(r,cls){return r.photo?'<div class="ph"><img src="'+esc(r.photo)+'" alt="" loading="lazy"></div>':'<div class="ph">'+esc((r.t||'?').charAt(0))+'</div>'}
 function mealName(m){return m==='sniadanie'?'Śniadanie':m==='kolacja'?'Kolacja':m==='przekaska'?'Przekąska':'Obiad'}
@@ -410,7 +410,7 @@ function viewWeek(){
   h+='<div class="startrow"><span>Planujemy od</span><button class="chip" data-act="start" data-v="'+td0+'" aria-pressed="'+(ss===td0)+'">Dziś</button><button class="chip" data-act="start" data-v="'+addDays(td0,1)+'" aria-pressed="'+(ss===addDays(td0,1))+'">Jutro</button><input id="startd" type="date" value="'+ss+'" aria-label="Pierwszy dzień planu"></div>';
   h+='<div class="cov">'+covBar('Śniadania',coverage('sniadanie'),tgt('sniadanie'),'sniadanie')+covBar('Obiady',coverage('obiad'),tgt('obiad'),'obiad')+covBar('Kolacje',coverage('kolacja'),tgt('kolacja'),'kolacja')+covBar('Przekąski',coverage('przekaska'),tgt('przekaska'),'przekaska')+'</div>';
   h+='<div class="acts"><button class="btn pri" data-act="propose">Zaproponuj tydzień</button><button class="btn'+(S.confirmNew?' dng':'')+'" data-act="newweek">'+(S.confirmNew?'Na pewno? Wyczyść listę':'Nowy tydzień')+'</button></div><label class="chk" style="margin:-4px 0 14px"><input type="checkbox" id="norep"'+(S.norep?' checked':'')+'><span>Nie powtarzaj dań z zeszłego tygodnia</span></label>';
-    var Lo=layout('obiad'),Ls=layout('sniadanie'),Lk=layout('kolacja'),Lp=layout('przekaska'),sn=tgt('przekaska')>0,tdw=dayDiff(startStr(),today());
+    var Lo=layout('obiad'),Ls=layout('sniadanie'),Lk=layout('kolacja'),Lp=layout('przekaska'),sn=cd('przekaska').length>0,tdw=dayDiff(startStr(),today());
   h+='<div class="wk'+(sn?' w5':'')+'"><div class="wkh"><span></span><span>Śniadanie</span><span>Obiad</span><span>Kolacja</span>'+(sn?'<span>Przekąska</span>':'')+'</div>'+WD.map(function(n0,k){var di=dayInfo(k);
     function cell(m,L){var on=cd(m).indexOf(k)>=0;return '<button class="cell '+(on?'on':'off')+'" data-act="cell" data-m="'+m+'" data-d="'+k+'" aria-pressed="'+on+'">'+(on?(L[k]?esc(L[k]):'<i>do zaplanowania</i>'):'<i>'+(m==='przekaska'?'brak':'gotowiec')+'</i>')+'</button>'}
     return '<div class="wkr'+(k===tdw?' today':'')+'"><button class="dn" data-act="dayrow" data-d="'+k+'" aria-label="Przełącz cały dzień"><b>'+di.wd+'</b><small>'+di.dm+'</small></button>'+cell('sniadanie',Ls)+cell('obiad',Lo)+cell('kolacja',Lk)+(sn?cell('przekaska',Lp):'')+'</div>'}).join('')+'</div><p class="hint">Dotknij kratki, żeby zmienić posiłek na „gotowiec” (albo z powrotem na gotowanie). Dotknij dnia, żeby przełączyć oba.</p>';
@@ -691,7 +691,7 @@ function propose(){
   var st0=startStr();
   function recent(r){if(!S.norep||!r.last)return 0;var dd=dayDiff(r.last,st0);return dd>=1&&dd<=7?1:0}
   function sorted(meal){return rs.filter(function(r){return r.meal===meal}).map(function(r){return {r:r,k:Math.pow(Math.random(),1/(r.fav?3:1))}}).sort(function(a,b){return (recent(a.r)-recent(b.r))||(b.k-a.k)}).map(function(x){return x.r})}
-  var sl={},X=curX(),used={},pools={obiad:sorted('obiad'),kolacja:sorted('kolacja'),sniadanie:sorted('sniadanie'),przekaska:sorted('przekaska')},cur={obiad:0,kolacja:0,sniadanie:0,przekaska:0};
+  var B0=curB(),sl={},X={sniadanie:B0.sniadanie.slice(),obiad:B0.obiad.slice(),kolacja:B0.kolacja.slice(),przekaska:B0.przekaska.slice()},used={},pools={obiad:sorted('obiad'),kolacja:sorted('kolacja'),sniadanie:sorted('sniadanie'),przekaska:sorted('przekaska')},cur={obiad:0,kolacja:0,sniadanie:0,przekaska:0};
   function run(startMeal,N){
     var pool=pools[startMeal],key=startMeal,cnt=0;
     if(!pool.length)return;
@@ -699,11 +699,11 @@ function propose(){
   }
   run('obiad',Infinity);run('kolacja',Infinity);run('sniadanie',Infinity);run('przekaska',Infinity);
   var td=today();
-  plan(Object.assign({slots:JSON.stringify(sl),picks:derive(sl,[]),example:false,start:startStr()},xFields(X)));
+  plan(Object.assign({slots:JSON.stringify(sl),picks:derive(sl,[]),example:false,start:startStr()},xFields(X),bFields(B0)));
   Object.keys(used).forEach(function(id){recp(id,{last:st0})});
 }
 function newWeek(){
-  setDoc('plan/current',{picks:[],slots:'{}',cs:cd('sniadanie'),co:cd('obiad'),ck:cd('kolacja'),cx:[],state:{},extras:{},example:false});
+  setDoc('plan/current',{picks:[],slots:'{}',cs:bd('sniadanie'),co:bd('obiad'),ck:bd('kolacja'),cx:[],bs:bd('sniadanie'),bo:bd('obiad'),bk:bd('kolacja'),bx:[],state:{},extras:{},example:false});
   S.confirmNew=false;
 }
 
@@ -736,13 +736,13 @@ document.addEventListener('click',function(e){
   if(a==='toggle'){var it=compute().filter(function(i){return i.key===d.key})[0];if(!it)return;
     if(it.status==='got')setStatus(d.key,'buy','undo');else setStatus(d.key,'got');return}
   if(a==='cell'){S.sheet={cell:{m:d.m,d:+d.d}};sheetCell();return}
-  if(a==='setcell'){var c=S.sheet&&S.sheet.cell;if(!c)return;var sl=Object.assign({},slotsEff()),key=c.m+'_'+c.d,X=curX();
+  if(a==='setcell'){var c=S.sheet&&S.sheet.cell;if(!c)return;var sl=Object.assign({},slotsEff()),key=c.m+'_'+c.d,X=curX(),B=curB();
     clearTrail(sl,c.m,c.d);
-    if(d.r==='_off'){delete sl[key];X[c.m]=X[c.m].filter(function(x){return x!==c.d})}
-    else{if(X[c.m].indexOf(c.d)<0)X[c.m].push(c.d);if(d.r==='_empty')delete sl[key];else{sl[key]=d.r;fillTrail(sl,X,d.r,c.m,c.d,S.recipes[d.r].days||2)}}
-    closeSheet();saveSlots(sl,xFields(X));return}
-  if(a==='dayrow'){var x=+d.d,ms=['sniadanie','obiad','kolacja'],on=!ms.every(function(m){return cd(m).indexOf(x)>=0}),sl2=Object.assign({},slotsEff()),o={};
-    ms.forEach(function(m){var s=cd(m).slice(),ix=s.indexOf(x);if(on&&ix<0)s.push(x);if(!on&&ix>=0){s.splice(ix,1);delete sl2[m+'_'+x]}s.sort(function(a,b){return a-b});o[MK[m]]=s});saveSlots(sl2,o);return}
+    if(d.r==='_off'){delete sl[key];X[c.m]=X[c.m].filter(function(x){return x!==c.d});B[c.m]=B[c.m].filter(function(x){return x!==c.d})}
+    else{if(X[c.m].indexOf(c.d)<0)X[c.m].push(c.d);if(B[c.m].indexOf(c.d)<0)B[c.m].push(c.d);if(d.r==='_empty')delete sl[key];else{sl[key]=d.r;fillTrail(sl,X,d.r,c.m,c.d,S.recipes[d.r].days||2)}}
+    closeSheet();saveSlots(sl,Object.assign(xFields(X),bFields(B)));return}
+  if(a==='dayrow'){var x=+d.d,ms=['sniadanie','obiad','kolacja'],on=!ms.every(function(m){return cd(m).indexOf(x)>=0}),sl2=Object.assign({},slotsEff()),o={},DB=curB();
+    ms.forEach(function(m){var bb=DB[m],bi=bb.indexOf(x);if(on&&bi<0)bb.push(x);if(!on&&bi>=0)bb.splice(bi,1);var s=cd(m).slice(),ix=s.indexOf(x);if(on&&ix<0)s.push(x);if(!on&&ix>=0){s.splice(ix,1);delete sl2[m+'_'+x]}s.sort(function(a,b){return a-b});o[MK[m]]=s});Object.assign(o,bFields(DB));saveSlots(sl2,o);return}
   if(a==='chkall'){S.chkAll=!S.chkAll;render(true);return}
   if(a==='chkok'){prod(d.p,{cycle:{chk:addDays(today(),3)}});return}
   if(a==='chkmiss'){var q=S.products[d.p],cc=q&&q.cycle;if(!cc)return;var el=cc.last?dayDiff(cc.last,today()):cc.every;
@@ -767,10 +767,10 @@ document.addEventListener('click',function(e){
   if(a==='sfav'){readRecipeForm();var sr0=S.recipes[S.sheet.id];S.sheet.fav=!(S.sheet.fav!=null?S.sheet.fav:sr0.fav);drawRecipe();return}
   if(a==='fav'){e.stopPropagation();var fr=S.recipes[d.r];if(fr)recp(d.r,{fav:!fr.fav});return}
   if(a==='openr'){sheetRecipe(d.r);return}
-  if(a==='cnt'){var cm=d.m,cs=cd(cm).slice().sort(function(a,b){return a-b}),slc=Object.assign({},slotsEff()),fo={};
-    if(+d.dir<0){if(!cs.length)return;var rm=cs.pop();delete slc[cm+'_'+rm]}
-    else{var ad=-1;for(var q=0;q<7;q++)if(cs.indexOf(q)<0){ad=q;break}if(ad<0)return;cs.push(ad);cs.sort(function(a,b){return a-b})}
-    fo[MK[cm]]=cs;saveSlots(slc,fo);return}
+  if(a==='cnt'){var cm=d.m,cs=cd(cm).slice().sort(function(a,b){return a-b}),CB=curB(),bs=CB[cm].slice().sort(function(a,b){return a-b}),slc=Object.assign({},slotsEff()),fo={};
+    if(+d.dir<0){if(!bs.length)return;var rm=bs.pop();cs=cs.filter(function(x){return x!==rm});delete slc[cm+'_'+rm]}
+    else{var ad=-1;for(var q=0;q<7;q++)if(bs.indexOf(q)<0){ad=q;break}if(ad<0)return;bs.push(ad);if(cs.indexOf(ad)<0){cs.push(ad);cs.sort(function(a,b){return a-b})}}
+    CB[cm]=bs;fo[MK[cm]]=cs;Object.assign(fo,bFields(CB));saveSlots(slc,fo);return}
   if(a==='planshop'){sheetPlanShop();return}
   if(a==='psstart'){S.psStart=+d.v;sheetPlanShop();return}
   if(a==='psplan'){closeSheet();S.tab='tydzien';render(true);window.scrollTo(0,0);return}
